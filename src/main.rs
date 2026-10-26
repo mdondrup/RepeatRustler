@@ -235,18 +235,17 @@ where
         let text = arg.to_string_lossy();
         match text.as_ref() {
             "-k" | "--k" => {
-                let value = iter
-                    .next()
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
-                k = value.to_string_lossy().parse::<usize>().map_err(|_| {
-                    io::Error::new(io::ErrorKind::InvalidInput, "k-mer size must be an integer")
-                })?;
+                let value = iter.next().ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+                k = value
+                    .to_string_lossy()
+                    .parse::<usize>()
+                    .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "k-mer size must be an integer"))?;
             }
             s if s.starts_with("-k=") => {
                 let value = &s[3..];
-                k = value.parse::<usize>().map_err(|_| {
-                    io::Error::new(io::ErrorKind::InvalidInput, "k-mer size must be an integer")
-                })?;
+                k = value
+                    .parse::<usize>()
+                    .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "k-mer size must be an integer"))?;
             }
             "-h" | "--help" => return Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE)),
             _ => {
@@ -261,10 +260,8 @@ where
         }
     }
 
-    let input_path =
-        input_path.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
-    let output_path =
-        output_path.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+    let input_path = input_path.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+    let output_path = output_path.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
     Ok((input_path, output_path, k))
 }
 
@@ -272,7 +269,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (input_path, output_path, k) = parse_cli_args(env::args_os().skip(1))?;
 
     // Allocate 2^24 slots upfront (~268MB of contiguous lock-free memory).
-    let counter = LockFreeKmerCounter::new(24);
+    let counter = LockFreeKmerCounter::new(31);
     // Process one FASTA record at a time; windows never cross record boundaries.
     count_fasta_file(input_path, k, &counter)?;
     let output = BufWriter::new(File::create(output_path)?);
@@ -284,9 +281,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        base_to_bits, count_fasta_file, count_sequence, parse_cli_args, LockFreeKmerCounter,
-    };
+    use super::{base_to_bits, count_fasta_file, count_sequence, parse_cli_args, LockFreeKmerCounter};
     use std::collections::{BTreeMap, BTreeSet};
     use std::ffi::OsString;
     use std::fs;
